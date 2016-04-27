@@ -1,0 +1,147 @@
+from django.shortcuts import render
+from django.http import HttpResponse
+from django.views.decorators.csrf import csrf_exempt
+from rest_framework.renderers import JSONRenderer
+from rest_framework.parsers import JSONParser
+from regform.models import UserTable
+from users.serializers import UserTableSerializer
+from users.permissions import IsOwnerOrReadOnly
+from rest_framework import permissions
+from rest_framework.authentication import SessionAuthentication, BasicAuthentication
+from rest_framework.permissions import IsAuthenticated
+from rest_framework.response import Response
+from rest_framework import authentication
+from rest_framework import exceptions
+from rest_framework.decorators import api_view
+from rest_framework.decorators import authentication_classes
+from rest_framework.decorators import permission_classes
+from django.contrib.auth.models import User
+from rest_framework import status
+from rest_framework.exceptions import ParseError
+from rest_framework.authtoken.models import Token
+from rest_framework.authentication import TokenAuthentication
+from rest_framework.permissions import IsAuthenticated
+from rest_framework.views import APIView
+
+
+
+
+class JSONResponse(HttpResponse):
+    """
+    An HttpResponse that renders its content into JSON.
+    """
+    def __init__(self, data, **kwargs):
+        content = JSONRenderer().render(data)
+        kwargs['content_type'] = 'application/json'
+        super(JSONResponse, self).__init__(content, **kwargs)
+
+
+@csrf_exempt
+def usertable_collection(request):
+    
+    if request.method == 'GET':
+        usertables = UserTable.objects.all()
+        serializer = UserTableSerializer(usertables, many=True)
+        return JSONResponse(serializer.data)
+
+    elif request.method == 'POST':
+        data = JSONParser().parse(request)
+        serializer = UserTableSerializer(data=data)
+        if serializer.is_valid():
+            serializer.save()
+            return JSONResponse(serializer.data, status=201)
+        return JSONResponse(serializer.errors, status=400)
+
+
+@csrf_exempt
+def usertable_detail(request, pk):
+    """
+    Retrieve, update or delete a code snippet.
+    """
+    try:
+        usertable = UserTable.objects.get(pk=pk)
+    except UserTable.DoesNotExist:
+        return HttpResponse(status=404)
+
+    if request.method == 'GET':
+        serializer = UserTableSerializer(usertable)
+        return JSONResponse(serializer.data)
+
+    elif request.method == 'PUT':
+        data = JSONParser().parse(request)
+        serializer = UserTableSerializer(usertable, data=data)
+        if serializer.is_valid():
+            serializer.save()
+            return JSONResponse(serializer.data)
+        return JSONResponse(serializer.errors, status=400)
+
+    elif request.method == 'DELETE':
+        usertable.delete()
+        return HttpResponse(status=204)
+
+#import pdb; pdb.set_trace()
+#class Usertable(authentication.BaseAuthentication):
+#    def authenticate(self , request):
+#        username = request.META.get('Users')
+#        if not username:
+#            return None
+
+#        try:
+#            user = User.objects.get(username=username)
+#        except User.DoesNotExist:
+#            raise exceptions.AuthenticationFailed('No such user')
+
+#        return (user, None)
+
+#@api_view(['GET'])
+#@authentication_classes((SessionAuthentication, BasicAuthentication))
+#@permission_classes((IsAuthenticated,))
+#def example_view(request, format=None):
+#    content = {
+#        'user': unicode(request.user),  # `django.contrib.auth.User` instance.
+#        'auth': unicode(request.auth),  # None
+ #   }
+#    return Response(content)
+
+class TestView(APIView):
+    """
+    """
+ 
+    def get(self, request, format=None):
+        return Response({'detail': "GET Response"})
+ 
+    def post(self, request, format=None):
+        try:
+            data = request.DATA
+        except ParseError as error:
+            return Response(
+                'Invalid JSON - {0}'.format(error.detail),
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        if "user" not in data or "password" not in data:
+            return Response(
+                'Wrong credentials',
+                status=status.HTTP_401_UNAUTHORIZED
+            )
+ 
+        user = User.objects.first()
+        if not user:
+            return Response(
+                'No default user, please create one',
+                status=status.HTTP_404_NOT_FOUND
+            )
+ 
+        token = Token.objects.get_or_create(user=user)
+ 
+        return Response({'detail': 'POST answer', 'token': token[0].key})
+
+
+class AuthView(APIView):
+    """
+    Authentication is needed for this methods
+    """
+    authentication_classes = (TokenAuthentication,)
+    permission_classes = (IsAuthenticated,)
+ 
+    def post(self, request, format=None):
+        return Response({'detail': "I suppose you are authenticated"})

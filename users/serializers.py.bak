@@ -1,0 +1,49 @@
+from rest_framework import serializers, exceptions
+
+from django.contrib.auth.models import User
+
+from regform.models import UserTable
+#from regform.utils import email_to_username
+
+
+class UserTableSerializer(serializers.Serializer):
+    pk = serializers.IntegerField(read_only=True)
+    user_name = serializers.CharField(required=False, allow_blank=True, max_length=50)
+    password = serializers.CharField(required=False, allow_blank=True, max_length=15)
+    first_name = serializers.CharField(required=True, allow_blank=True, max_length=50)
+    middle_name = serializers.CharField(required=False, allow_blank=True, max_length=50)
+    last_name = serializers.CharField(required=True, allow_blank=True, max_length=50)
+    email = serializers.CharField(required=True, allow_blank=True, max_length=50)
+    mobile_no = serializers.CharField(required=False, allow_blank=True, max_length=15)
+    alternate_mobile_no = serializers.CharField(required=True, allow_blank=True, max_length=15)
+    date_of_birth = serializers.CharField(required=True, allow_blank=True)
+    gender = serializers.CharField(max_length=5, required=True, allow_blank=True)
+    ethnicity = serializers.CharField(required=False, allow_blank=True, max_length=1)
+    country = serializers.CharField(required=False, allow_blank=True, max_length=10)
+    languages_known = serializers.CharField(required=False, allow_blank=True, max_length=7)
+    
+    def create(self, validated_data):
+        user_name = validated_data['user_name']
+        password = validated_data['password']
+        first_name = validated_data['first_name']
+        middle_name = validated_data.get('middle_name', '')
+        last_name = validated_data['last_name']
+        mobile_no = validated_data['mobile_no']
+        alternate_mobile_no = validated_data['alternate_mobile_no']
+        date_of_birth = validated_data['date_of_birth']
+        gender = validated_data['gender']
+        ethnicity = validated_data['ethnicity']
+        country = validated_data['country']
+        languages_known = validated_data['languages_known']
+        email = validated_data['email']
+        try:
+            user = User.objects.get(email=email)
+            raise exceptions.ValidationError(detail="email already registered")
+        except User.DoesNotExist: 
+            user = User.objects.create(email=email,
+                                       username=email_to_username(email))    
+            user.set_password(password)
+            user.save()
+            return UserTable.objects.create(user=user, first_name=first_name, middle_name=middle_name,
+                                          last_name=last_name, mobile_no=mobile_no, alternate_mobile_no=alternate_mobile_no, date_of_birth=date_of_birth, gender=gender, 
+                                          ethnicity=ethnicity, country=country, languages_known=languages_known)

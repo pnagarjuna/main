@@ -1,0 +1,37 @@
+from django import forms
+from django.utils.translation import ugettext_lazy as _
+from regform.models import UserTable
+from django.contrib.auth.models import User
+from django.db import IntegrityError
+from django.contrib.auth.password_validation import *
+
+from nocaptcha_recaptcha.fields import NoReCaptchaField
+
+
+class RegistrationForm(forms.Form):
+    #min_password_length = 8
+    first_name = forms.RegexField(regex=r'^\w+$', widget=forms.TextInput(attrs=dict(required=True, max_length=50)), min_length=0,
+                                  label=_("First Name"),
+                                  error_messages={ 'invalid': _("This value must contain only letters, numbers and underscores.") })
+    middle_name = forms.RegexField(regex=r'^\w+$', widget=forms.TextInput, required=False, max_length=50,
+                                  label=_("Middle Name"),
+                                  error_messages={ 'invalid': _("This value must contain only letters, numbers and underscores.") })
+    last_name = forms.RegexField(regex=r'^\w+$', widget=forms.TextInput, required=False,max_length=50, 
+                                  label=_("Last Name"), 
+                                  error_messages={ 'invalid': _("This value must contain only letters, numbers and underscores.") })
+    email = forms.EmailField(widget=forms.TextInput(attrs=dict(required=True, max_length=30)), label=_("Email address"))
+    phone_number = forms.RegexField(regex=r'^\+?1?\d{9,15}$', required=False,
+                                    error_messages={ 'invalid': _("Phone number must be entered in the format: '+919999999'. Up to 15 digits allowed.") })
+    password1 = forms.CharField(min_length=6, widget=forms.PasswordInput(attrs=dict(required=True,
+                                                                      max_length=15,
+                                                                      render_value=False)),
+                                label=_("Password"))
+    password2 = forms.CharField(min_length=6,widget=forms.PasswordInput(attrs=dict(required=True,
+                                                                      max_length=15,
+                                                                      render_value=False)),
+                                label=_("Password (again)"))
+
+    captcha = NoReCaptchaField()
+
+   
+

@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+{% block title %}{{ title }}{% endblock %}
+{% block head %}{{ title }}{% endblock %}
+{% block content %}
+    <script src="https://www.google.com/recaptcha/api.js" async defer></script>
+    <form method="post" action=".">{% csrf_token %}
+        <table border="0">
+            {{ form.as_table }}
+        </table>
+        <input type="submit" value="Update" />
+    </form>
+    <a href="/">Login / Home</a>
+{% endblock %}
